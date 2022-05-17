@@ -1,0 +1,152 @@
+2.2.3、单机版安装
+#创建elsearch用户，Elasticsearch不支持root用户运行
+useradd elsearch
+#解压安装包
+tar -xvf elasticsearch-6.5.4.tar.gz -C /haoke/es/
+
+#修改配置文件
+vim conf/elasticsearch.yml
+network.host: 172.16.55.185 #绑定的地址
+#说明：在Elasticsearch中如果，network.host不是localhost或者127.0.0.1的话，就会认为是生产环
+境，会对环境的要求比较高，我们的测试环境不一定能够满足，一般情况下需要修改2处配置，如下：
+#1：修改jvm启动参数
+vim conf/jvm.options
+-Xms128m #根据自己机器情况修改
+-Xmx128m
+#2：单个进程中的最大线程数
+vim /etc/sysctl.conf
+vm.max_map_count=655360
+#启动ES服务
+su - elsearch
+cd bin
+./elasticsearch 或 ./elasticsearch -d #后台系统
+#通过访问http://172.16.55.185:9200进行测试，看到如下信息，就说明ES启动成功了
+{
+"name": "dSQV6I8",
+"cluster_name": "elasticsearch",
+"cluster_uuid": "v5GPTWAtT5emxFdjigFg-w",
+"version": {
+"number": "6.5.4",
+"build_flavor": "default",
+"build_type": "tar",
+"build_hash": "d2ef93d",
+"build_date": "2018-12-17T21:17:40.758843Z",
+"build_snapshot": false,
+"lucene_version": "7.5.0",
+"minimum_wire_compatibility_version": "5.6.0",
+"minimum_index_compatibility_version": "5.0.0"
+},
+"tagline": "You Know, for Search"
+}
+#停止服务
+root@itcast:~# jps
+68709 Jps
+68072 Elasticsearch
+kill 68072 #通过kill结束进程
+
+2.2.4、使用docker安装=============================================================================================================
+
+docker run --name elasticsearch -p 9200:9200 -p 9300:9300  -e "discovery.type=single-node" -e ES_JAVA_OPTS="-Xms64m -Xmx128m" -v /haoke/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml -v /haoke/elasticsearch/data:/usr/share/elasticsearch/data -v /haoke/elasticsearch/plugins:/usr/share/elasticsearch/plugins -d elasticsearch:7.6.2
+
+docker run --name kibana -e ELASTICSEARCH_HOSTS=http://192.168.66.128:9200 -p 5601:5601 -d kibana:7.6.2
+
+chmod -R 777 /haoke/elasticsearch/
+
+
+#拉取镜像
+docker pull elasticsearch:latest
+#创建容器
+docker create --name elasticsearch --net host -e "discovery.type=single-node" -e
+"network.host=192.168.66.128" elasticsearch:latest
+#启动
+docker start elasticsearch
+#查看日志
+docker logs elasticsearch
+
+#拉取镜像
+docker pull mobz/elasticsearch-head:5
+#创建容器
+docker create --name elasticsearch-head -p 9100:9100 mobz/elasticsearch-head:5
+#启动容器
+docker start elasticsearch-head
+
+
+
+
+============================================
+
+mkdir /haoke/es-cluster
+cd /haoke/es-cluster
+mkdir node01
+mkdir node02
+#复制安装目录下的elasticsearch.yml、jvm.options文件，做如下修改
+#node01的配置：
+cluster.name: es-itcast-cluster
+node.name: node01
+node.master: true
+node.data: true
+network.host: 172.16.55.185
+http.port: 9200
+discovery.zen.ping.unicast.hosts: ["172.16.55.185"]
+discovery.zen.minimum_master_nodes: 1
+http.cors.enabled: true
+http.cors.allow-origin: "*"
+#node02的配置：
+cluster.name: es-itcast-cluster
+node.name: node02
+node.master: false
+node.data: true
+network.host: 172.16.55.185
+http.port: 9201
+discovery.zen.ping.unicast.hosts: ["172.16.55.185"]
+discovery.zen.minimum_master_nodes: 1
+http.cors.enabled: true
+http.cors.allow-origin: "*"
+
+
+cluster.name: es-itcast-cluster
+node.name: node01
+node.master: true
+node.data: true
+network.host: 0.0.0.0
+http.port: 9201
+cluster.initial_master_nodes: ["node-1"]
+discovery.seed_hosts: ["192.168.66.128:9201","192.168.66.128:9202","192.168.66.128:9203"]
+discovery.zen.minimum_master_nodes: 2
+http.cors.enabled: true
+http.cors.allow-origin: "*"
+
+
+
+#创建容器
+docker create --name es-node01 --net host -v /haoke/es-cluster/node01/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml -v /haoke/es-cluster/node01/jvm.options:/usr/share/elasticsearch/config/jvm.options -v /haoke/es-cluster/node01/data:/usr/share/elasticsearch/data  elasticsearch:7.6.2
+
+
+docker create --name es-node02 --net host -v /haoke/es-cluster/node02/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml -v /haoke/es-cluster/node02/jvm.options:/usr/share/elasticsearch/config/jvm.options -v /haoke/es-cluster/node02/data:/usr/share/elasticsearch/data  elasticsearch:7.6.2
+#启动容器
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

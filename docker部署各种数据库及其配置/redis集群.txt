@@ -1,0 +1,26 @@
+#拉取镜像
+docker pull redis:5.0.2
+#创建容器
+docker create --name redis-node01 --net host -v /data/redis-data/node01:/data redis --cluster-enabled yes --cluster-config-file nodes-node-01.conf --port 6379
+docker create --name redis-node02 --net host -v /data/redis-data/node02:/data redis --cluster-enabled yes --cluster-config-file nodes-node-02.conf --port 6380
+docker create --name redis-node03 --net host -v /data/redis-data/node03:/data redis --cluster-enabled yes --cluster-config-file nodes-node-03.conf --port 6381
+#启动容器
+docker start redis-node01 redis-node02 redis-node03
+#删除容器
+docker stop redis-node01 redis-node02 redis-node03
+docker rm redis-node01 redis-node02 redis-node03
+rm -rf /data/redis-data
+ #查看容器的ip地址
+docker inspect redis-node01
+docker inspect redis-node02
+#启动容器
+docker start redis-node01 redis-node02 redis-node03
+#开始组建集群
+#进入redis-node01进行操作
+docker exec -it redis-node01 /bin/bash
+#组建集群(注意端口的变化)
+redis-cli --cluster create 192.168.66.128:6379 192.168.66.128:6380 192.168.66.128:6381 --cluster-replicas 0
+
+redis-cli
+CLUSTER NODES
+

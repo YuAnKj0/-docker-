@@ -1,0 +1,235 @@
+docker create --name mysql-master01 -v /data/mysql/master01/data:/var/lib/mysql -v /data/mysql/master01/conf:/etc/my.cnf.d -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root mysql:latest
+
+docker start mysql-master01 && docker logs -f mysql-master01
+
+create user 'itcast'@'%' identified by 'itcast';
+grant replication slave on *.* to 'itcast'@'%';
+flush privileges;
+
+sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'
+
+
+#创建目录
+mkdir /data/mysql/slave01
+cd /data/mysql/slave01
+mkdir conf data
+chmod 777 * -R
+#创建配置文件
+cd /data/mysql/slave01/conf
+vim my.cnf
+#输入如下内容
+[mysqld]
+server-id=2 #服务id，不可重复
+
+sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'
+
+docker create --name mysql-slave01 -v /data/mysql/slave01/data:/var/lib/mysql -v /data/mysql/slave01/conf:/etc/my.cnf.d -p 3307:3306 -e MYSQL_ROOT_PASSWORD=root mysql:latest
+
+
+
+4.5.1、配置master
+PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='广告表';
+--测试插入数据
+INSERT INTO `tb_ad` (`id`, `type`, `title`, `url`, `created`, `updated`) VALUES ('1',
+'1', 'UniCity万科天空之城', 'http://itcast-haoke.oss-cnqingdao.aliyuncs.com/images/2018/11/26/15432029097062227.jpg', '2018-11-26 11:28:49',
+'2018-11-26 11:28:51');
+--测试结果：主库有写入数据，从库会同步数据
+
+
+#搭建master
+#创建目录
+mkdir /data/mysql/master02
+cd /data/mysql/master02
+mkdir conf data
+chmod 777 * -R
+#创建配置文件
+cd /data/mysql/master02/conf
+vim my.cnf
+#输入如下内容
+[mysqld]
+log-bin=mysql-bin #开启二进制日志
+server-id=1 #服务id，不可重复
+sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'
+
+#创建容器
+docker create --name percona-master02 -v /data/mysql/master02/data:/var/lib/mysql -v /data/mysql/master02/conf:/etc/my.cnf.d -p 3316:3306 -e MYSQL_ROOT_PASSWORD=root percona:5.7.23
+#启动
+docker start percona-master02 && docker logs -f percona-master02
+#创建同步账户以及授权
+create user 'itcast'@'%' identified by 'itcast';
+grant replication slave on *.* to 'itcast'@'%';
+flush privileges;
+#查看master状态
+show master status;
+
+
+
+4.5.2、配置slave
+#创建容器
+docker create --name percona-master02 -v /data/mysql/master02/data:/var/lib/mysql -v
+/data/mysql/master02/conf:/etc/my.cnf.d -p 3316:3306 -e MYSQL_ROOT_PASSWORD=root
+percona:5.7.23
+#启动
+docker start percona-master02 && docker logs -f percona-master02
+#创建同步账户以及授权
+create user 'itcast'@'%' identified by 'itcast';
+grant replication slave on *.* to 'itcast'@'%';
+flush privileges;
+#查看master状态
+show master status;
+
+#搭建从库
+#创建目录
+mkdir /data/mysql/slave02
+cd /data/mysql/slave02
+mkdir conf data
+chmod 777 * -R
+#创建配置文件
+cd /data/mysql/slave02/conf
+vim my.cnf
+#输入如下内容
+[mysqld]
+server-id=2 #服务id，不可重复
+sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO
+,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'
+#创建容器
+docker create --name percona-slave02 -v /data/mysql/slave02/data:/var/lib/mysql -v
+/data/mysql/slave02/conf:/etc/my.cnf.d -p 3317:3306 -e MYSQL_ROOT_PASSWORD=root
+percona:5.7.23
+#启动
+docker start percona-slave02 && docker logs -f percona-slave02
+#设置master相关信息
+CHANGE MASTER TO
+master_host='192.168.1.18',
+master_user='itcast',
+master_password='itcast',
+master_port=3316,
+master_log_file='xxxxxx',
+master_log_pos=xxxx;
+
+#启动同步
+start slave;
+#查看master状态
+show slave status;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

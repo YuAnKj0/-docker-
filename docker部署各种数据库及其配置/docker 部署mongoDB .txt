@@ -1,0 +1,181 @@
+#拉取镜像
+docker pull mongo:4.0.3
+#创建容器
+docker create --name mongodb -p 27017:27017 -v /data/mongodb:/data/db mongo:4.0.3
+#启动容器
+docker start mongodb
+#进入容器
+docker exec -it mongodb /bin/bash
+#使用MongoDB客户端进行操作
+mongo
+> show dbs #查询所有的数据库
+admin 0.000GB
+config 0.000GB
+local 0.000GB
+#查看所有的数据库
+> show dbs
+admin 0.000GB
+config 0.000GB
+local 0.000GB
+#通过use关键字切换数据库
+> use admin
+switched to db admin
+#创建数据库
+#说明：在MongoDB中，数据库是自动创建的，通过use切换到新数据库中，进行插入数据即可自动创建数据库
+> use testdb
+switched to db testdb
+> show dbs #并没有创建数据库
+admin 0.000GB
+config 0.000GB
+local 0.000GB
+> db.user.insert({id:1,name:'zhangsan'}) #插入数据
+WriteResult({ "nInserted" : 1 })
+> show dbs
+admin 0.000GB
+config 0.000GB
+local 0.000GB
+testdb 0.000GB #数据库自动创建
+#查看表
+> show tables
+user
+> show collections
+user
+>
+#删除集合（表）
+> db.user.drop()
+true #如果成功删除选定集合，则 drop() 方法返回 true，否则返回 false。
+#删除数据库
+> use testdb #先切换到要删除的数据中
+switched to db testdb
+> db.dropDatabase() #删除数据库
+{ "dropped" : "testdb", "ok" : 1 }
+> show dbs
+admin 0.000GB
+config 0.000GB
+local 0.000GB
+#插入数据
+#语法：db.COLLECTION_NAME.insert(document)
+> db.user.insert({id:1,username:'zhangsan',age:20})
+WriteResult({ "nInserted" : 1 })
+> db.user.save({id:2,username:'lisi',age:25})
+WriteResult({ "nInserted" : 1 })
+> db.user.find() #查询数据
+{ "_id" : ObjectId("5c08c0024b318926e0c1f6dc"), "id" : 1, "username" : "zhangsan","age" : 20 }
+{ "_id" : ObjectId("5c08c0134b318926e0c1f6dd"), "id" : 2, "username" : "lisi","age" : 25 }
+#update() 方法用于更新已存在的文档。语法格式如下：
+db.collection.update(
+<query>,
+<update>,
+[
+upsert: <boolean>,
+multi: <boolean>,
+writeConcern: <document>
+]
+)
+> db.user.find()
+{ "_id" : ObjectId("5c08c0024b318926e0c1f6dc"), "id" : 1, "username" : "zhangsan","age" : 20 }
+{ "_id" : ObjectId("5c08c0134b318926e0c1f6dd"), "id" : 2, "username" : "lisi","age" : 25 }
+> db.user.update({id:1},{$set:{age:22}}) #更新数据
+WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+> db.user.find()
+{ "_id" : ObjectId("5c08c0024b318926e0c1f6dc"), "id" : 1, "username" : "zhangsan","age" : 22 }
+{ "_id" : ObjectId("5c08c0134b318926e0c1f6dd"), "id" : 2, "username" : "lisi","age" : 25 }
+#注意：如果这样写，会删除掉其他的字段
+> db.user.update({id:1},{age:25})
+WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+> db.user.find()
+{ "_id" : ObjectId("5c08c0024b318926e0c1f6dc"), "age" : 25 }
+{ "_id" : ObjectId("5c08c0134b318926e0c1f6dd"), "id" : 2, "username" : "lisi","age" : 25 }
+#更新不存在的字段，会新增字段
+> db.user.update({id:2},{$set:{sex:1}}) #更新数据
+> db.user.find()
+{ "_id" : ObjectId("5c08c0024b318926e0c1f6dc"), "age" : 25 }
+{ "_id" : ObjectId("5c08c0134b318926e0c1f6dd"), "id" : 2, "username" : "lisi","age" : 25, "sex" : 1 }
+#更新不存在的数据，默认不会新增数据
+> db.user.update({id:3},{$set:{sex:1}})
+WriteResult({ "nMatched" : 0, "nUpserted" : 0, "nModified" : 0 })
+> db.user.find()
+{ "_id" : ObjectId("5c08c0024b318926e0c1f6dc"), "age" : 25 }
+{ "_id" : ObjectId("5c08c0134b318926e0c1f6dd"), "id" : 2, "username" : "lisi",
+"age" : 25, "sex" : 1 }
+#如果设置第一个参数为true，就是新增数据
+> db.user.update({id:3},{$set:{sex:1}},true)
+WriteResult({
+"nMatched" : 0,
+"nUpserted" : 1,
+"nModified" : 0,
+"_id" : ObjectId("5c08cb281418d073246bc642")
+})
+> db.user.find()
+{ "_id" : ObjectId("5c08c0024b318926e0c1f6dc"), "age" : 25 }
+{ "_id" : ObjectId("5c08c0134b318926e0c1f6dd"), "id" : 2, "username" : "lisi","age" : 25, "sex" : 1 }
+{ "_id" : ObjectId("5c08cb281418d073246bc642"), "id" : 3, "sex" : 1 }
+#通过remove()方法进行删除数据，语法如下：
+db.collection.remove(
+<query>,
+{
+justOne: <boolean>,
+writeConcern: <document>
+}
+)
+> db.user.remove({age:25})
+WriteResult({ "nRemoved" : 2 }) #删除了2条数据
+#插入4条测试数据
+db.user.insert({id:1,username:'zhangsan',age:20})
+db.user.insert({id:2,username:'lisi',age:21})
+db.user.insert({id:3,username:'wangwu',age:22})
+db.user.insert({id:4,username:'zhaoliu',age:22})
+
+> db.user.remove({age:22},true)
+WriteResult({ "nRemoved" : 1 }) #删除了1条数据
+#删除所有数据
+> db.user.remove({})
+#说明：为了简化操作，官方推荐使用deleteOne()与deleteMany()进行删除数据操作。
+db.user.deleteOne({id:1})
+db.user.deleteMany({}) #删除所有数据
+
+#MongoDB 查询数据的语法格式如下：
+db.user.find([query],[fields])
+
+#插入测试数据
+db.user.insert({id:1,username:'zhangsan',age:20})
+db.user.insert({id:2,username:'lisi',age:21})
+db.user.insert({id:3,username:'wangwu',age:22})
+db.user.insert({id:4,username:'zhaoliu',age:22})
+db.user.find() #查询全部数据
+db.user.find({},{id:1,username:1}) #只查询id与username字段
+db.user.find().count() #查询数据条数
+db.user.find({id:1}) #查询id为1的数据
+db.user.find({age:{$lte:21}}) #查询小于等于21的数据
+db.user.find({age:{$lte:21}, id:{$gte:2}}) #and查询，age小于等于21并且id大于等于2
+db.user.find({$or:[{id:1},{id:2}]}) #查询id=1 or id=2
+#分页查询：Skip()跳过几条，limit()查询条数
+db.user.find().limit(2).skip(1) #跳过1条数据，查询2条数据
+db.user.find().sort({id:-1}) #按照age倒序排序，-1为倒序，1为正序
+
+#查看索引
+> db.user.getIndexes()
+[
+{
+"v" : 2,
+"key" : {
+"_id" : 1
+},
+"name" : "_id_",
+"ns" : "testdb.user"
+}
+]
+#说明：1表示升序创建索引，-1表示降序创建索引。
+
+#创建索引
+> db.user.createIndex({'age':1})
+{
+"createdCollectionAutomatically" : false,
+"numIndexesBefore" : 1,
+"numIndexesAfter" : 2,
+"ok" : 1
+}
+#删除索引
+db.user.dropIndex("age_1")
+#或者，删除除了_id之外的索引
+db.user.dropIndexes()
